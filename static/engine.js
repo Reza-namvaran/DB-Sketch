@@ -9,7 +9,15 @@ function createSVG(tag) {
 }
 
 function addShape(type) {
-    let shape = {id: Date.now(), type, x: 100, y: 100, w: 120, h: 60, text: type.toUpperCase()};
+    let shape = {
+        id: Date.now(), 
+        type,
+        x: 100,
+        y: 100, 
+        w: type === "Cr" ? 30 : 120,
+        h: type === "Cr" ? 30 : 60,
+        text: type.toUpperCase()
+    };
     shapes.push(shape);
     render();
 }
@@ -29,6 +37,10 @@ function addDiamond() {
 
 function addIndentifyingRelationship() {
     addShape("idr");
+}
+
+function addCircle() {
+    addShape("Cr");
 }
 
 function startDrag(e) {
@@ -128,6 +140,17 @@ function render() {
                 p.setAttribute("stroke", "black");
                 g.appendChild(p);
             });
+        }
+
+        if (shape.type === "Cr") {
+            let c = createSVG("ellipse");
+            c.setAttribute("cx", shape.x + shape.w/2);
+            c.setAttribute("cy", shape.y + shape.h/2);
+            c.setAttribute("rx", shape.w/2);
+            c.setAttribute("ry", shape.h/2);
+            c.setAttribute("fill", "white");
+            c.setAttribute("stroke", "black");
+            g.appendChild(c);
         }
 
         let t = createSVG("text");
