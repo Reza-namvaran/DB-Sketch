@@ -9,6 +9,44 @@ let connectForm = null;
 
 let selectedShape = null;
 
+function saveDiagram() {
+    let data = {
+        shapes,
+        edges
+    };
+
+    let json = JSON.stringify(data, null, 2);
+    let blob = new Blob([json], { type: "application/json"});
+    let url  = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "diagram.json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+function loadDiagram() {
+    let input = document.createElement("input");
+    input.type = "file";
+    input.accept = "json";
+
+    input.onchange = e => {
+        let file = e.target.files[0];
+        let reader = new FileReader();
+        reader.onload = () => {
+            let data = JSON.parse(reader.result);
+            shapes = data.shapes || [];
+            edges = data.edges || [];
+            render();
+        };
+        reader.readAsText(file);
+    }; 
+
+    input.click();
+}
+
 function createSVG(tag) {
     return document.createElementNS("http://www.w3.org/2000/svg", tag);
 }
