@@ -18,6 +18,7 @@ function addRect() {
     addShape("rect");
 }
 
+
 function addDoubleRect() {
     addShape("double-rect");
 }
@@ -37,6 +38,14 @@ function startDrag(e) {
     offsetY = e.clientY - dragging.y;
 }
 
+function editText(shape) {
+    let inputText = prompt("Edit text:", shape.text);
+    if (inputText !== null) {
+        shape.text = inputText;
+        render();
+    }
+}
+
 function render() {
     svg.innerHTML = "";
 
@@ -44,7 +53,8 @@ function render() {
         let g = createSVG("g");
         g.classList.add("shape");
         g.setAttribute("data-id", shape.id);
-        g.addEventListener("mousedown", startDrag)
+        g.addEventListener("mousedown", startDrag);
+        g.addEventListener("dblclick", () => editText(shape));
     
         if (shape.type === "rect") {
             let r = createSVG("rect");
