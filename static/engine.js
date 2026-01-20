@@ -54,7 +54,9 @@ function handleConnection(shape) {
     } else {
         edges.push({
             from: connectForm.id,
-            to: shape.id
+            to: shape.id,
+            fromLabel: "1",
+            toLabel: "1"
         });
 
         connectForm = null;
@@ -99,6 +101,14 @@ function editText(shape) {
     }
 }
 
+function editEdge(edge) {
+    let fromLabel = prompt("From cardinality (1, N, M):", edge.fromLabel);
+    let toLabel = prompt("From cardinality (1, N, M):", edge.toLabel);
+    if (from != null) edge.fromLabel = fromLabel;
+    if (to != null) edge.toLabel = toLabel;
+    render();
+}
+
 function render() {
     svg.innerHTML = "";
 
@@ -108,14 +118,50 @@ function render() {
 
         if (!from || !to) return;
 
+        let x1 = from.x + from.w/2;
+        let y1 = from.y + from.h/2;
+        let x2 = to.x + from.w/2;
+        let y2 = to.y + from.h/2;
+
         let line = createSVG("line");
-        line.setAttribute("x1", from.x + from.w/2);
-        line.setAttribute("y1", from.y + from.h/2);
-        line.setAttribute("x2", to.x + to.w/2);
-        line.setAttribute("y2", to.y + to.h/2);
+        line.setAttribute("x1", x1);
+        line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", y2);
         line.setAttribute("stroke", "black");
         line.setAttribute("marker-end", "url(#arrow)");
+        line.addEventListener("dblclick", () => editEdge(edge));
         svg.appendChild(line);
+
+        // Cardinality text
+        let offset = 12; // distance from the arrow
+        let angle = Math.atan2(y2 - y1, x2 - x1);
+
+        // FROM label
+        let fx = x1 + Math.cos(angle) * offset - 5;
+        let fy = y1 + Math.sin(angle) * offset - 5;
+        let t1 = createSVG("text");
+        t1.setAttribute("x", fx);
+        t1.setAttribute("y", fy);
+        t1.setAttribute("font-size", "30");
+        t1.setAttribute("fill", "black");
+        t1.setAttribute("text-anchor", "middle");
+        t1.setAttribute("dominant-baseline", "middle");
+        t1.textContent = edge.fromLabel;
+        svg.appendChild(t1);
+
+        // TO label
+        let tx = x2 - Math.cos(angle) * offset;
+        let ty = y2 - Math.sin(angle) * offset;
+        let t2 = createSVG("text");
+        t2.setAttribute("x", tx);
+        t2.setAttribute("y", ty);
+        t2.setAttribute("font-size", "30");
+        t2.setAttribute("fill", "black");
+        t2.setAttribute("text-anchor", "middle");
+        t2.setAttribute("dominant-baseline", "middle");
+        t2.textContent = edge.toLabel;
+        svg.appendChild(t2);
     });
 
     shapes.forEach(shape => {
