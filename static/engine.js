@@ -4,6 +4,9 @@ let dragging = null;
 let offsetX = 0;
 let offsetY = 0;
 
+let edges = [];
+let connectForm = null;
+
 function createSVG(tag) {
     return document.createElementNS("http://www.w3.org/2000/svg", tag);
 }
@@ -43,9 +46,30 @@ function addCircle() {
     addShape("Cr");
 }
 
+function handleConnection(shape) {
+    if (!connectForm) {
+        connectForm = shape;
+    } else {
+        edges.push({
+            from: connectForm.id,
+            to: shape.id
+        });
+
+        connectForm = null;
+        render();
+    }
+}
+
 function startDrag(e) {
     let id = Number(this.getAttribute("data-id"));
-    dragging = shapes.find(s => s.id === id);
+    let shape = shapes.find(s => s.id === id);
+    
+    if (e.shiftKey) {
+        handleConnection(shape);
+        return;
+    }
+
+    dragging = shape;
     offsetX = e.clientX - dragging.x;
     offsetY = e.clientY - dragging.y;
 }
@@ -60,6 +84,22 @@ function editText(shape) {
 
 function render() {
     svg.innerHTML = "";
+
+    edges.forEach(edge => {
+        let from = shapes.find(s => s.id === edge.from);
+        let to   = shapes.find(s => s.id === edge.to);
+
+        if (!from || !to) return;
+
+        let line = createSVG("line");
+        line.setAttribute("x1", from.x + from.w/2);
+        line.setAttribute("y1", from.y + from.h/2);
+        line.setAttribute("x2", to.x + to.w/2);
+        line.setAttribute("y2", to.y + to.h/2);
+        line.setAttribute("stroke", "black");
+        line.setAttribute("marker-end", "url(#arrow)");
+        svg.appendChild(line);
+    });
 
     shapes.forEach(shape => {
         let g = createSVG("g");
