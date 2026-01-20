@@ -7,6 +7,8 @@ let offsetY = 0;
 let edges = [];
 let connectForm = null;
 
+let selectedShape = null;
+
 function createSVG(tag) {
     return document.createElementNS("http://www.w3.org/2000/svg", tag);
 }
@@ -63,6 +65,7 @@ function handleConnection(shape) {
 function startDrag(e) {
     let id = Number(this.getAttribute("data-id"));
     let shape = shapes.find(s => s.id === id);
+    selectedShape = shape;
     
     if (e.shiftKey) {
         handleConnection(shape);
@@ -73,6 +76,20 @@ function startDrag(e) {
     offsetX = e.clientX - dragging.x;
     offsetY = e.clientY - dragging.y;
 }
+
+function deleteShape(shapeID) {
+    shapes = shapes.filter(s => s.id !== shapeID);
+    edges = edges.filter(edge => edge.from !== shapeID && edge.to !== shapeID);
+    selectedShape = null;
+    render();
+}
+
+document.addEventListener("keydown", k => {
+    if (k.key === "Delete" && selectedShape) {
+        deleteShape(selectedShape.id);
+    }
+})
+
 
 function editText(shape) {
     let inputText = prompt("Edit text:", shape.text);
