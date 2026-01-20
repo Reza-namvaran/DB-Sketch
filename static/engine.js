@@ -26,6 +26,10 @@ function addDiamond() {
     addShape("diamond");
 }
 
+function addIndentifyingRelationship() {
+    addShape("idr");
+}
+
 function startDrag(e) {
     let id = Number(this.getAttribute("data-id"));
     dragging = shapes.find(s => s.id === id);
@@ -71,7 +75,7 @@ function render() {
                 Rect.setAttribute("fill", "white");
                 Rect.setAttribute("stroke", "black");
                 g.appendChild(Rect);
-            })
+            });
         }
 
         if (shape.type === "diamond") {
@@ -86,17 +90,45 @@ function render() {
             p.setAttribute("fill", "white");
             p.setAttribute("stroke", "black");
             g.appendChild(p);
-          }
-      
-          let t = createSVG("text");
-          t.setAttribute("x", shape.x + shape.w/2);
-          t.setAttribute("y", shape.y + shape.h/2);
-          t.setAttribute("text-anchor", "middle");
-          t.setAttribute("dominant-baseline", "middle");
-          t.textContent = shape.text;
-          g.appendChild(t);
+        }
+    
+        if (shape.type === "idr") {
+            let innerP = createSVG("polygon");
+            let innerPoints = `
+              ${shape.x + shape.w/2},${shape.y}
+              ${shape.x + shape.w},${shape.y + shape.h/2}
+              ${shape.x + shape.w/2},${shape.y + shape.h}
+              ${shape.x},${shape.y + shape.h/2}
+            `;
 
-          svg.appendChild(g);
+            let outerP = createSVG("polygon");
+            let outerPoints = `
+              ${shape.x + 5 + (shape.w - 10)/2},${shape.y + 5}
+              ${shape.x + 5 + (shape.w - 10)},${shape.y + 5 + (shape.h - 10)/2}
+              ${shape.x + 5 + (shape.w - 10)/2},${shape.y + 5 + (shape.h - 10)}
+              ${shape.x + 5},${shape.y + 5 + (shape.h - 10)/2}
+            `;
+
+
+            innerP.setAttribute("points", innerPoints);
+            outerP.setAttribute("points", outerPoints);
+            
+            [innerP, outerP].forEach(p => {
+                p.setAttribute("fill", "white");
+                p.setAttribute("stroke", "black");
+                g.appendChild(p);
+            });
+        }
+
+        let t = createSVG("text");
+        t.setAttribute("x", shape.x + shape.w/2);
+        t.setAttribute("y", shape.y + shape.h/2);
+        t.setAttribute("text-anchor", "middle");
+        t.setAttribute("dominant-baseline", "middle");
+        t.textContent = shape.text;
+        g.appendChild(t);
+
+        svg.appendChild(g);
     });
 }
 
