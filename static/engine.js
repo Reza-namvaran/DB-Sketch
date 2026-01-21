@@ -68,6 +68,103 @@ function loadDiagram() {
     input.click();
 }
 
+function findShapeByText(text) {
+    return shapes.find(s => s.text === text);
+}
+
+function validCardinality(cardinality) {
+    return cardinality === "M" || cardinality === "N" || cardinality === "1";
+}
+
+function parseSyntax() {
+    shapes = [];
+    edges  = [];
+    
+    let lines = document.getElementById("syntax").value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#"));
+
+    lines.forEach(line => {
+        let parts = line.split(" ");
+
+        if (parts[0] === "entity") {
+            let name = parts[1];
+            let [x, y] = extractPos(line);
+            addShapeFromSyntax("rect", name, x, y);
+        }
+
+        if (parts[0] === "weak_entity") {
+            let name = parts[1];
+            let [x, y] = extractPos(line);
+            addShapeFromSyntax("double-rect", name, x, y);
+        }
+        if (parts[0] === "relationship") {
+            let name = parts[1];
+            let [x, y] = extractPos(line);
+            addShapeFromSyntax("diamond", name, x, y);
+        }
+
+        if (parts[0] === "attribute") {
+            let name = parts[1];
+            let owner = parts[3];
+            let target = findShapeByText(owner);
+            if (!target) return;
+
+            let x = target.x - 100;
+            let y = target.y;
+            addShapeFromSyntax("attribute", name, x, y);
+
+            let attr = findShapeByText(name);
+            edges.push({
+                from: attr.id,
+                to: target.id,
+                fromLabel: "",
+                toLabel: "",
+                participation: "partial"
+            });
+        }
+
+        if (parts[0] === "connect") {
+            let from = findShapeByText(parts[1]);
+            let to   = findShapeByText(parts[2]);
+            if (!from || !to) return;
+
+            fromLabel = validCardinality(parts[3]) ? parts[3] : "";
+            toLabel = validCardinality(parts[4]) ? parts[4] : "";
+            let participation = parts[5] || "partial";
+
+            edges.push({
+                from: from.id,
+                to: to.id,
+                fromLabel,
+                toLabel,
+                participation 
+            });
+        }
+    });
+
+    render();
+}
+
+function extractPos(line) {
+    let match = line.match(/\((\d+),\s*(\d+)\)/);
+    if (!match) return [100, 100];
+    return [parseInt(match[1]), parseInt(match[2])];
+}
+
+function addShapeFromSyntax(type, text, x, y) {
+    let shape = {
+        id: Date.now() + Math.random(),
+        type,
+        x,
+        y,
+        w:
+          type === "circle" || type === "attribute" ? 80 : 120,
+        h:
+          type === "circle" || type === "attribute" ? 40 : 60,
+        text
+      };
+      shapes.push(shape);
+}
+
 function addShape(type) {
     saveState();
     let shape = {

@@ -16,8 +16,14 @@
     <button onclick="addCircle()">Circle</button>
     <button onclick="saveDiagram()">Save</button>
     <button onclick="loadDiagram()">Load</button>
-
 </div>
+
+<textarea id="syntax"
+  placeholder="Write ER/EER syntax here..."
+  style="width:100%; height:120px; margin-top:10px;"></textarea>
+
+<button onclick="parseSyntax()">Generate Diagram</button>
+
 
 <svg id="canvas">
     <defs>
