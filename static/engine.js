@@ -1,4 +1,6 @@
 const svg = document.getElementById("canvas");
+svg.style.width = "100vw";
+svg.style.height = "100vh";
 const GRID_SIZE = 20;
 
 let shapes = [];
@@ -9,6 +11,25 @@ let offsetY = 0;
 let connectForm = null;
 let selectedShape = null;
 let editing = false;
+
+let undoStack = [];
+function saveState() {
+    undoStack.push({
+        shapes: JSON.parse(JSON.stringify(shapes)),
+        edges: JSON.parse(JSON.stringify(edges))
+    });
+    if (undoStack.length > 50) undoStack.shift(); // limit undo history
+}
+document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        if (undoStack.length > 0) {
+            const state = undoStack.pop();
+            shapes = JSON.parse(JSON.stringify(state.shapes));
+            edges = JSON.parse(JSON.stringify(state.edges));
+            render();
+        }
+    }
+});
 
 function snap(val) {
     return Math.round(val / GRID_SIZE) * GRID_SIZE;
@@ -28,6 +49,7 @@ function saveDiagram() {
     a.click();
     URL.revokeObjectURL(url);
 }
+
 function loadDiagram() {
     let input = document.createElement("input");
     input.type = "file";
@@ -47,6 +69,7 @@ function loadDiagram() {
 }
 
 function addShape(type) {
+    saveState();
     let shape = {
         id: Date.now(),
         type,
@@ -71,13 +94,20 @@ function handleConnection(shape) {
         shape._highlight = true;
         render();
     } else {
-        edges.push({
-            from: connectForm.id,
-            to: shape.id,
-            fromLabel: "1",
-            toLabel: "1",
-            participation: "partial"
-        });
+        let exists = edges.some(e => 
+            (e.from === connectForm.id && e.to === shape.id) || 
+            (e.from === shape.id && e.to === connectForm.id)
+        );
+        if (!exists) {
+            saveState();
+            edges.push({
+                from: connectForm.id,
+                to: shape.id,
+                fromLabel: "1",
+                toLabel: "1",
+                participation: "partial"
+            });
+        }
         connectForm._highlight = false;
         shape._highlight = false;
         connectForm = null;
@@ -102,6 +132,7 @@ function startDrag(e) {
 }
 
 function deleteShape(shapeID) {
+    saveState();
     shapes = shapes.filter(s => s.id !== shapeID);
     edges = edges.filter(edge => edge.from !== shapeID && edge.to !== shapeID);
     selectedShape = null;
@@ -116,11 +147,13 @@ document.addEventListener("keydown", k => {
 function editText(shape) {
     let inputText = prompt("Edit text:", shape.text);
     if (inputText !== null) {
+        saveState();
         shape.text = inputText;
         render();
     }
 }
 function editEdge(edge) {
+    saveState();
     let fromLabel = prompt("From cardinality (1, N, M):", edge.fromLabel);
     let toLabel = prompt("To cardinality (1, N, M):", edge.toLabel);
     let participation = prompt("Participation (partial/total)", edge.participation);
@@ -151,6 +184,7 @@ function inlineEditText(svgText, edge, side) {
     function commit() {
         if (committed) return;
         committed = true;
+        saveState();
         if (side === "from") edge.fromLabel = input.value;
         if (side === "to") edge.toLabel = input.value;
         document.body.removeChild(input);
@@ -176,7 +210,7 @@ function createCardinalityText(x, y, edge, side) {
     t.setAttribute("text-anchor", "middle");
     t.setAttribute("dominant-baseline", "middle");
     t.style.cursor = "text";
-    t.style.pointerEvents = "all"; // ensure clickable
+    t.style.pointerEvents = "all"; 
     t.textContent = side === "from" ? edge.fromLabel : edge.toLabel;
     t.addEventListener("click", e => {
         e.stopPropagation();
@@ -224,10 +258,20 @@ function render() {
         line.setAttribute("x1", x1); line.setAttribute("y1", y1);
         line.setAttribute("x2", x2); line.setAttribute("y2", y2);
         line.setAttribute("stroke", "black");
+        line.setAttribute("stroke-width", 2);
+        line.setAttribute("data-id", edge.from + "-" + edge.to);
+        line.setAttribute("cursor", "pointer");
+        line.setAttribute("pointer-events","stroke"); 
+        line.setAttribute("fill","none");
         line.setAttribute("marker-end", "url(#arrow)");
+
+        line.addEventListener("mouseenter", () => line.setAttribute("stroke", "blue"));
+        line.addEventListener("mouseleave", () => line.setAttribute("stroke", "black"));
         line.addEventListener("dblclick", () => editEdge(edge));
+
         svg.appendChild(line);
 
+        // total participation double line
         if (edge.participation === "total") {
             const dx = x2 - x1;
             const dy = y2 - y1;
@@ -273,6 +317,7 @@ function render() {
             r.setAttribute("stroke-width", strokeWidth);
             g.appendChild(r);
         }
+
         if (shape.type === "double-rect") {
             let innerRect = createSVG("rect");
             let outerRect = createSVG("rect");
@@ -287,6 +332,7 @@ function render() {
                 g.appendChild(r);
             });
         }
+
         if (shape.type === "diamond" || shape.type === "idr") {
             let innerP = createSVG("polygon");
             let outerP = shape.type==="idr" ? createSVG("polygon") : null;
@@ -305,6 +351,7 @@ function render() {
                 g.appendChild(outerP);
             }
         }
+
         if (shape.type === "Cr") {
             let c = createSVG("ellipse");
             c.setAttribute("cx", shape.x+shape.w/2); c.setAttribute("cy", shape.y+shape.h/2);
@@ -322,6 +369,8 @@ function render() {
         t.setAttribute("dominant-baseline","middle");
         t.textContent = shape.text;
         g.appendChild(t);
+
+
 
         svg.appendChild(g);
     });
