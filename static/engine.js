@@ -158,6 +158,10 @@ function editEdge(edge) {
     render();
 }
 
+function isNotEntity(shape) {
+    return shape.type !== "rect" && shape.type !== "double-rect";
+}
+
 function render() {
     svg.innerHTML = `<defs>
         <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
@@ -193,8 +197,8 @@ function render() {
 
         let x1 = from.x + from.w/2;
         let y1 = from.y + from.h/2;
-        let x2 = to.x + from.w/2;
-        let y2 = to.y + from.h/2;
+        let x2 = to.x + to.w/2;
+        let y2 = to.y + to.h/2;
 
         let line = createSVG("line");
         line.setAttribute("x1", x1);
@@ -227,31 +231,36 @@ function render() {
             svg.appendChild(line2);
         }
         
-        // Cardinality text
-        let offset = 12; // distance from the arrow
-        let angle = Math.atan2(y2 - y1, x2 - x1);
+        // Cardinality display
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const offset = 18;
+
+        // Decide anchor points
+        let fromAnchor = isNotEntity(from) ? { x: x1, y: y1 } : {
+            x: (x1 + x2) / 2,
+            y: (y1 + y2) / 2
+        };
+
+        let toAnchor = isNotEntity(to) ? { x: x2, y: y2 } : {
+            x: (x1 + x2) / 2,
+            y: (y1 + y2) / 2
+        };
 
         // FROM label
-        let fx = x1 + Math.cos(angle) * offset - 5;
-        let fy = y1 + Math.sin(angle) * offset - 5;
         let t1 = createSVG("text");
-        t1.setAttribute("x", fx);
-        t1.setAttribute("y", fy);
-        t1.setAttribute("font-size", "30");
-        t1.setAttribute("fill", "black");
+        t1.setAttribute("x", fromAnchor.x + Math.cos(angle) * offset);
+        t1.setAttribute("y", fromAnchor.y + Math.sin(angle) * offset);
+        t1.setAttribute("font-size", "16");
         t1.setAttribute("text-anchor", "middle");
         t1.setAttribute("dominant-baseline", "middle");
         t1.textContent = edge.fromLabel;
         svg.appendChild(t1);
 
         // TO label
-        let tx = x2 - Math.cos(angle) * offset;
-        let ty = y2 - Math.sin(angle) * offset;
         let t2 = createSVG("text");
-        t2.setAttribute("x", tx);
-        t2.setAttribute("y", ty);
-        t2.setAttribute("font-size", "30");
-        t2.setAttribute("fill", "black");
+        t2.setAttribute("x", toAnchor.x - Math.cos(angle) * offset);
+        t2.setAttribute("y", toAnchor.y - Math.sin(angle) * offset);
+        t2.setAttribute("font-size", "16");
         t2.setAttribute("text-anchor", "middle");
         t2.setAttribute("dominant-baseline", "middle");
         t2.textContent = edge.toLabel;
