@@ -96,10 +96,23 @@ function parseSyntax() {
             let [x, y] = extractPos(line);
             addShapeFromSyntax("double-rect", name, x, y);
         }
+
         if (parts[0] === "relationship") {
             let name = parts[1];
             let [x, y] = extractPos(line);
             addShapeFromSyntax("diamond", name, x, y);
+        }
+
+        if (parts[0] === "idr") {
+            let name = parts[1];
+            let [x, y] = extractPos(line);
+            addShapeFromSyntax("idr", name, x, y);
+        }
+
+        if (parts[0] === "circle") {
+            let name = parts[1];
+            let [x, y] = extractPos(line);
+            addShapeFromSyntax("Cr", name, x, y);
         }
 
         if (parts[0] === "attribute") {
@@ -157,9 +170,9 @@ function addShapeFromSyntax(type, text, x, y) {
         x,
         y,
         w:
-          type === "circle" || type === "attribute" ? 80 : 120,
+          type === "attribute" ? 80 : type === "Cr" ? 30 : 120,
         h:
-          type === "circle" || type === "attribute" ? 40 : 60,
+          type === "attribute" ? 40 : type === "Cr" ? 30 : 60,
         text
       };
       shapes.push(shape);
