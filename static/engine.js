@@ -12,13 +12,18 @@ let connectForm = null;
 let selectedShape = null;
 let editing = false;
 
+let selectionStart = null;
+let selectionRect = null;
+let selectedShapes = [];
+let selectedEdges = [];
+
 let undoStack = [];
 function saveState() {
     undoStack.push({
         shapes: JSON.parse(JSON.stringify(shapes)),
         edges: JSON.parse(JSON.stringify(edges))
     });
-    if (undoStack.length > 50) undoStack.shift(); // limit undo history
+    if (undoStack.length > 50) undoStack.shift();
 }
 document.addEventListener("keydown", e => {
     if ((e.ctrlKey || e.metaKey) && e.key === "z") {
@@ -34,8 +39,16 @@ document.addEventListener("keydown", e => {
 function snap(val) {
     return Math.round(val / GRID_SIZE) * GRID_SIZE;
 }
+
 function createSVG(tag) {
     return document.createElementNS("http://www.w3.org/2000/svg", tag);
+}
+
+function getSVGCoords(evt) {
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
 }
 
 function saveDiagram() {
@@ -247,8 +260,19 @@ function deleteShape(shapeID) {
     render();
 }
 document.addEventListener("keydown", k => {
-    if (k.key === "Delete" && selectedShape) {
-        deleteShape(selectedShape.id);
+    if (k.key === "Delete") {
+        if (selectedShapes.length > 0) {
+            saveState();
+            selectedShapes.forEach(s => {
+                shapes = shapes.filter(shape => shape.id !== s.id);
+                edges = edges.filter(edge => edge.from !== s.id && edge.to !== s.id);
+            });
+            selectedShapes = [];
+            selectedEdges = [];
+            render();
+        } else if (selectedShape) {
+            deleteShape(selectedShape.id);
+        }
     }
 });
 
@@ -507,11 +531,78 @@ function render() {
 }
 
 svg.addEventListener("mousemove", e => {
-    if (!dragging) return;
-    dragging.x = snap(e.clientX - offsetX);
-    dragging.y = snap(e.clientY - offsetY);
-    render();
+    if (selectionStart) {
+        const coords = getSVGCoords(e);
+        const x = Math.min(selectionStart.x, coords.x);
+        const y = Math.min(selectionStart.y, coords.y);
+        const w = Math.abs(selectionStart.x - coords.x);
+        const h = Math.abs(selectionStart.y - coords.y);
+        selectionRect.setAttribute("x", x);
+        selectionRect.setAttribute("y", y);
+        selectionRect.setAttribute("width", w);
+        selectionRect.setAttribute("height", h);
+    } else if (dragging) {
+        dragging.x = snap(e.clientX - offsetX);
+        dragging.y = snap(e.clientY - offsetY);
+        render();
+    }
 });
-svg.addEventListener("mouseup", () => dragging = null);
+
+svg.addEventListener("mouseup", e => {
+    if (selectionStart) {
+        selectedShapes = shapes.filter(s => {
+            const sx = s.x, sy = s.y, sw = s.w, sh = s.h;
+            const rx = parseFloat(selectionRect.getAttribute("x"));
+            const ry = parseFloat(selectionRect.getAttribute("y"));
+            const rw = parseFloat(selectionRect.getAttribute("width"));
+            const rh = parseFloat(selectionRect.getAttribute("height"));
+            return sx + sw > rx && sx < rx + rw && sy + sh > ry && sy < ry + rh;
+        });
+
+        shapes.forEach(s => s._highlight = selectedShapes.includes(s));
+
+        selectedEdges = edges.filter(edge => {
+            const from = shapes.find(s => s.id === edge.from);
+            const to   = shapes.find(s => s.id === edge.to);
+            if (!from || !to) return false;
+            const x1 = from.x + from.w/2;
+            const y1 = from.y + from.h/2;
+            const x2 = to.x + to.w/2;
+            const y2 = to.y + to.h/2;
+            const rx = parseFloat(selectionRect.getAttribute("x"));
+            const ry = parseFloat(selectionRect.getAttribute("y"));
+            const rw = parseFloat(selectionRect.getAttribute("width"));
+            const rh = parseFloat(selectionRect.getAttribute("height"));
+            const minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
+            const minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+            return maxX > rx && minX < rx + rw && maxY > ry && minY < ry + rh;
+        });
+
+        selectionStart = null;
+        if (selectionRect) {
+            svg.removeChild(selectionRect);
+            selectionRect = null;
+        }
+        render();
+    }
+    dragging = null;
+});
 svg.addEventListener("mouseleave", () => dragging = null);
 svg.addEventListener("contextmenu", e => e.preventDefault());
+svg.addEventListener("mousedown", e => {
+    if (!e.shiftKey) {
+        shapes.forEach(s => s._highlight = false);
+        selectedShapes = [];
+        selectedEdges = [];
+    }
+    
+    if (e.target === svg && e.button === 0) {
+        const coords = getSVGCoords(e);
+        selectionStart = { x: coords.x, y: coords.y };
+        selectionRect = createSVG("rect");
+        selectionRect.setAttribute("fill", "rgba(0,0,255,0.1)");
+        selectionRect.setAttribute("stroke", "blue");
+        selectionRect.setAttribute("stroke-dasharray", "4");
+        svg.appendChild(selectionRect);
+    }
+});
