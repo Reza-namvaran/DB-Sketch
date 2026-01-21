@@ -1,4 +1,6 @@
 let svg = document.getElementById("canvas");
+const GRID_SIZE = 20;
+
 let shapes = [];
 let dragging = null;
 let offsetX = 0;
@@ -8,6 +10,10 @@ let edges = [];
 let connectForm = null;
 
 let selectedShape = null;
+
+function snap(val) {
+    return Math.round(val / GRID_SIZE) * GRID_SIZE;
+}
 
 function saveDiagram() {
     let data = {
@@ -95,7 +101,7 @@ function handleConnection(shape) {
             to: shape.id,
             fromLabel: "1",
             toLabel: "1",
-            participaition: "partial"
+            participation: "partial"
         });
 
         connectForm = null;
@@ -143,17 +149,41 @@ function editText(shape) {
 function editEdge(edge) {
     let fromLabel = prompt("From cardinality (1, N, M):", edge.fromLabel);
     let toLabel = prompt("To cardinality (1, N, M):", edge.toLabel);
-    let participaition = prompt("Participation (partial/total)", edge.participaition);
+    let participation = prompt("Participation (partial/total)", edge.participation);
 
-    if (from != null) edge.fromLabel = fromLabel;
-    if (to != null) edge.toLabel = toLabel;
-    if (participaition === "total" || participaition === "partial") edge.participaition = participaition;
+    if (fromLabel != null) edge.fromLabel = fromLabel;
+    if (toLabel != null) edge.toLabel = toLabel;
+    if (participation === "total" || participation === "partial") edge.participation = participation;
 
     render();
 }
 
 function render() {
-    svg.innerHTML = "";
+    svg.innerHTML = `<defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+            <path d="M0,0 L10,5 L0,10 Z" fill="black"/>
+        </marker>
+    </defs>`;
+
+    for (let x = 0; x < window.innerWidth; x += GRID_SIZE) {
+        let v = createSVG("line");
+        v.setAttribute("x1", x);
+        v.setAttribute("y1", 0);
+        v.setAttribute("x2", x);
+        v.setAttribute("y2", window.innerHeight);
+        v.setAttribute("stroke", "#eee");
+        svg.appendChild(v);
+    }
+
+    for (let y = 0; y < window.innerHeight; y += GRID_SIZE) {
+        let h = createSVG("line");
+        h.setAttribute("x1", 0);
+        h.setAttribute("y1", y);
+        h.setAttribute("x2", window.innerWidth);
+        h.setAttribute("y2", y);
+        h.setAttribute("stroke", "#eee");
+        svg.appendChild(h);
+    }
 
     edges.forEach(edge => {
         let from = shapes.find(s => s.id === edge.from);
@@ -334,8 +364,8 @@ function render() {
 
 svg.addEventListener("mousemove", e => {
     if (!dragging) return;
-    dragging.x = e.clientX - offsetX;
-    dragging.y = e.clientY - offsetY;
+    dragging.x = snap(e.clientX - offsetX);
+    dragging.y = snap(e.clientY - offsetY);
     render();
 });
 
