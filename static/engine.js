@@ -327,6 +327,13 @@ function createCardinalityText(x, y, edge, side) {
     svg.appendChild(t);
 }
 
+function shouldShowCardinality(from, to) {
+    const relTypes = ["diamond", "idr"];
+    const entTypes = ["rect", "double-rect"];
+    return (relTypes.includes(from.type) && entTypes.includes(to.type)) ||
+           (relTypes.includes(to.type) && entTypes.includes(from.type));
+}
+
 function render() {
     svg.innerHTML = `<defs>
         <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
@@ -395,14 +402,17 @@ function render() {
             line2.setAttribute("stroke", "black");
             svg.appendChild(line2);
         }
-
+        
         const angle = Math.atan2(y2 - y1, x2 - x1);
         const offset = 18;
-        let fromAnchor = isNotEntity(from) ? { x: x1, y: y1 } : { x: (x1+x2)/2, y: (y1+y2)/2 };
-        let toAnchor = isNotEntity(to) ? { x: x2, y: y2 } : { x: (x1+x2)/2, y: (y1+y2)/2 };
-
-        createCardinalityText(fromAnchor.x + Math.cos(angle)*offset, fromAnchor.y + Math.sin(angle)*offset, edge, "from");
-        createCardinalityText(toAnchor.x - Math.cos(angle)*offset, toAnchor.y - Math.sin(angle)*offset, edge, "to");
+        
+        if (shouldShowCardinality(from, to)) {
+            let fromAnchor = isNotEntity(from) ? { x: x1, y: y1 } : { x: (x1+x2)/2, y: (y1+y2)/2 };
+            let toAnchor   = isNotEntity(to)   ? { x: x2, y: y2 } : { x: (x1+x2)/2, y: (y1+y2)/2 };
+        
+            createCardinalityText(fromAnchor.x + Math.cos(angle)*offset, fromAnchor.y + Math.sin(angle)*offset, edge, "from");
+            createCardinalityText(toAnchor.x - Math.cos(angle)*offset, toAnchor.y - Math.sin(angle)*offset, edge, "to");
+        }        
     });
 
     // Shapes
