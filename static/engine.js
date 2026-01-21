@@ -77,9 +77,6 @@ function validCardinality(cardinality) {
 }
 
 function parseSyntax() {
-    shapes = [];
-    edges  = [];
-    
     let lines = document.getElementById("syntax").value.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#"));
 
     lines.forEach(line => {
