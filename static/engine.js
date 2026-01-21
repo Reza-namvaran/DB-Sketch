@@ -87,6 +87,7 @@ function addDoubleRect() { addShape("double-rect"); }
 function addDiamond() { addShape("diamond"); }
 function addIndentifyingRelationship() { addShape("idr"); }
 function addCircle() { addShape("Cr"); }
+function addAttribute() { addShape("attribute"); }
 
 function handleConnection(shape) {
     if (!connectForm) {
@@ -360,6 +361,18 @@ function render() {
             c.setAttribute("stroke",strokeColor);
             c.setAttribute("stroke-width",strokeWidth);
             g.appendChild(c);
+        }
+
+        if (shape.type === "attribute") {
+            let oval = createSVG("ellipse");
+            oval.setAttribute("cx", shape.x + shape.w/2);
+            oval.setAttribute("cy", shape.y + shape.h/2);
+            oval.setAttribute("rx", shape.w/2);
+            oval.setAttribute("ry", shape.h/2);
+            oval.setAttribute("fill", "#fff8dc"); // light color for attribute
+            oval.setAttribute("stroke", strokeColor);
+            oval.setAttribute("stroke-width", strokeWidth);
+            g.appendChild(oval);
         }
 
         let t = createSVG("text");
