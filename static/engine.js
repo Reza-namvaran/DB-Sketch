@@ -94,7 +94,8 @@ function handleConnection(shape) {
             from: connectForm.id,
             to: shape.id,
             fromLabel: "1",
-            toLabel: "1"
+            toLabel: "1",
+            participaition: "partial"
         });
 
         connectForm = null;
@@ -141,9 +142,13 @@ function editText(shape) {
 
 function editEdge(edge) {
     let fromLabel = prompt("From cardinality (1, N, M):", edge.fromLabel);
-    let toLabel = prompt("From cardinality (1, N, M):", edge.toLabel);
+    let toLabel = prompt("To cardinality (1, N, M):", edge.toLabel);
+    let participaition = prompt("Participation (partial/total)", edge.participaition);
+
     if (from != null) edge.fromLabel = fromLabel;
     if (to != null) edge.toLabel = toLabel;
+    if (participaition === "total" || participaition === "partial") edge.participaition = participaition;
+
     render();
 }
 
@@ -171,6 +176,27 @@ function render() {
         line.addEventListener("dblclick", () => editEdge(edge));
         svg.appendChild(line);
 
+        if (edge.participation === "total") {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.sqrt(dx*dx + dy*dy);
+        
+            // perpendicular unit vector
+            const nx = -dy / len;
+            const ny = dx / len;
+        
+            const offset = 4;
+        
+            let line2 = createSVG("line");
+            line2.setAttribute("x1", x1 + nx * offset);
+            line2.setAttribute("y1", y1 + ny * offset);
+            line2.setAttribute("x2", x2 + nx * offset);
+            line2.setAttribute("y2", y2 + ny * offset);
+            line2.setAttribute("stroke", "black");
+        
+            svg.appendChild(line2);
+        }
+        
         // Cardinality text
         let offset = 12; // distance from the arrow
         let angle = Math.atan2(y2 - y1, x2 - x1);
