@@ -1,0 +1,20 @@
+entity User at (100,100)
+entity Support at (500,100)
+
+weak_entity CheckRequest at (300,260)
+
+attribute id of User
+
+idr Request at (300,100)
+connect User Request N N partial
+connect Support Request N N 
+
+connect CheckRequest Request N N total
+
+relationship Result_in at (500, 260)
+
+connect CheckRequest Result_in 1 1 parital
+
+entity Shop at (700, 260)
+
+connect Shop Result_in 1 1 partial
