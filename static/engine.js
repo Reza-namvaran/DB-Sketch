@@ -13,7 +13,10 @@ let camera = {
     zoom: 1
 };
 
-let panning = false;
+let mode = "idle";
+
+let dragContext = null;
+
 let panStart = {x: 0, y: 0};
 let spaceDown = false;
 
@@ -26,9 +29,6 @@ document.addEventListener("keyup", key => {
 
 let shapes = [];
 let edges = [];
-let dragging = null;
-let offsetX = 0;
-let offsetY = 0;
 let connectForm = null;
 let selectedShape = null;
 let editing = false;
@@ -262,6 +262,9 @@ function handleConnection(shape) {
 }
 
 function startDrag(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (editing) return;
     let id = Number(this.getAttribute("data-id"));
     let shape = shapes.find(s => s.id === id);
@@ -274,15 +277,19 @@ function startDrag(e) {
 
     const p = getSVGCoords(e);
 
-    dragging = {
-        shape: selectedShape.length ? selectedShape : [shape],
+    const targets = selectedShapes.length && selectedShapes.includes(shape) ? selectedShapes : [shape];
+
+    dragContext = {
+        targets,
         startMouse: p,
-        startPosition: (selectedShape.length ? selectedShape : [shape]).map(s => ({
+        start: targets.map(s => ({
             s,
             x: s.x,
             y: s.y
         })) 
     };
+
+    mode = "dragging";
 }
 
 function deleteShape(shapeID) {
@@ -559,6 +566,7 @@ function render() {
         t.setAttribute("x", shape.x+shape.w/2);
         t.setAttribute("y", shape.y+shape.h/2);
         t.setAttribute("text-anchor","middle");
+        t.setAttribute("pointer-event", "none");
         t.setAttribute("dominant-baseline","middle");
         t.textContent = shape.text;
         g.appendChild(t);
@@ -569,79 +577,6 @@ function render() {
     });
 }
 
-svg.addEventListener("mousemove", e => {
-    const p = getSVGCoords(e);
-    if (dragging) {
-        const dx = p.x - dragging.startMouse.x;
-        const dy = p.y - dragging.startMouse.y;
-
-        dragging.startPosition.forEach(o => {
-            o.s.x = snap(o.x + dx);
-            o.s.y = snap(o.y + dy);
-        });
-
-        render();
-    }
-});
-
-svg.addEventListener("mouseup", e => {
-    if (selectionStart) {
-        selectedShapes = shapes.filter(s => {
-            const sx = s.x, sy = s.y, sw = s.w, sh = s.h;
-            const rx = parseFloat(selectionRect.getAttribute("x"));
-            const ry = parseFloat(selectionRect.getAttribute("y"));
-            const rw = parseFloat(selectionRect.getAttribute("width"));
-            const rh = parseFloat(selectionRect.getAttribute("height"));
-            return sx + sw > rx && sx < rx + rw && sy + sh > ry && sy < ry + rh;
-        });
-
-        shapes.forEach(s => s._highlight = selectedShapes.includes(s));
-
-        selectedEdges = edges.filter(edge => {
-            const from = shapes.find(s => s.id === edge.from);
-            const to   = shapes.find(s => s.id === edge.to);
-            if (!from || !to) return false;
-            const x1 = from.x + from.w/2;
-            const y1 = from.y + from.h/2;
-            const x2 = to.x + to.w/2;
-            const y2 = to.y + to.h/2;
-            const rx = parseFloat(selectionRect.getAttribute("x"));
-            const ry = parseFloat(selectionRect.getAttribute("y"));
-            const rw = parseFloat(selectionRect.getAttribute("width"));
-            const rh = parseFloat(selectionRect.getAttribute("height"));
-            const minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
-            const minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
-            return maxX > rx && minX < rx + rw && maxY > ry && minY < ry + rh;
-        });
-
-        selectionStart = null;
-        if (selectionRect) {
-            svg.removeChild(selectionRect);
-            selectionRect = null;
-        }
-        render();
-    }
-    dragging = null;
-});
-svg.addEventListener("mouseleave", () => dragging = null);
-svg.addEventListener("contextmenu", e => e.preventDefault());
-svg.addEventListener("mousedown", e => {
-    if (!e.shiftKey) {
-        shapes.forEach(s => s._highlight = false);
-        selectedShapes = [];
-        selectedEdges = [];
-    }
-    
-    if (e.target === svg && e.button === 0) {
-        const coords = getSVGCoords(e);
-        selectionStart = { x: coords.x, y: coords.y };
-        selectionRect = createSVG("rect");
-        selectionRect.setAttribute("fill", "rgba(0,0,255,0.1)");
-        selectionRect.setAttribute("stroke", "blue");
-        selectionRect.setAttribute("stroke-dasharray", "4");
-        svg.appendChild(selectionRect);
-    }
-});
 
 svg.addEventListener("wheel", key => {
     if (!key.ctrlKey) return;
@@ -661,25 +596,98 @@ svg.addEventListener("wheel", key => {
     updateCamera();
 });
 
-svg.addEventListener("mousedown", key => {
-    if (key.button === 1 || (key.button === 0 && spaceDown)) {
-        panning = true;
-        panStart = {x: key.clientX, y: key.clientY};
+svg.addEventListener("mousemove", e => {
+    const p = getSVGCoords(e);
+
+    // DRAG
+    if (mode === "dragging" && dragContext) {
+        const dx = p.x - dragContext.startMouse.x;
+        const dy = p.y - dragContext.startMouse.y;
+
+        dragContext.start.forEach(o => {
+            o.s.x = snap(o.x + dx);
+            o.s.y = snap(o.y + dy);
+        });
+
+        render();
+        return;
+    }
+
+    // SELECTION BOX
+    if (mode === "selecting" && selectionRect) {
+        const x = Math.min(selectionStart.x, p.x);
+        const y = Math.min(selectionStart.y, p.y);
+        const w = Math.abs(selectionStart.x - p.x);
+        const h = Math.abs(selectionStart.y - p.y);
+
+        selectionRect.setAttribute("x", x);
+        selectionRect.setAttribute("y", y);
+        selectionRect.setAttribute("width", w);
+        selectionRect.setAttribute("height", h);
+        return;
+    }
+
+    // PAN
+    if (mode === "panning") {
+        camera.x += e.clientX - panStart.x;
+        camera.y += e.clientY - panStart.y;
+        panStart = { x: e.clientX, y: e.clientY };
+        updateCamera();
     }
 });
 
-svg.addEventListener("mousemove", e => {
-    if (!panning) return;
+svg.addEventListener("mousedown", e => {
+    e.preventDefault();
+    if (editing) return;
 
-    camera.x = (e.clientX - panStart.x);
-    camera.y = (e.clientY - panStart.y);
+    // PAN
+    if (e.button === 1 || (e.button === 0 && spaceDown)) {
+        mode = "panning";
+        panStart = { x: e.clientX, y: e.clientY };
+        return;
+    }
 
-    panStart = { x: e.clientX, y: e.clientY };
-    
-    updateCamera();
+    // SELECTION
+    if (e.button === 0 && e.target === svg) {
+        if (!e.shiftKey) {
+            selectedShapes = [];
+            shapes.forEach(s => s._highlight = false);
+        }
+
+        const p = getSVGCoords(e);
+        selectionStart = p;
+
+        selectionRect = createSVG("rect");
+        selectionRect.setAttribute("fill", "rgba(0,0,255,0.1)");
+        selectionRect.setAttribute("stroke", "blue");
+        selectionRect.setAttribute("stroke-dasharray", "4");
+        viewport.appendChild(selectionRect);
+
+        mode = "selecting";
+    }
 });
 
-svg.addEventListener("mouseup", () => panning = false);
-svg.addEventListener("mouseup", () => dragging = null);
-svg.addEventListener("mouseleave", () => panning = false);
+svg.addEventListener("mouseup", () => {
+    if (mode === "selecting" && selectionRect) {
+        const rx = parseFloat(selectionRect.getAttribute("x"));
+        const ry = parseFloat(selectionRect.getAttribute("y"));
+        const rw = parseFloat(selectionRect.getAttribute("width"));
+        const rh = parseFloat(selectionRect.getAttribute("height"));
 
+        selectedShapes = shapes.filter(s =>
+            s.x + s.w > rx &&
+            s.x < rx + rw &&
+            s.y + s.h > ry &&
+            s.y < ry + rh
+        );
+
+        shapes.forEach(s => s._highlight = selectedShapes.includes(s));
+
+        viewport.removeChild(selectionRect);
+        selectionRect = null;
+    }
+
+    dragContext = null;
+    selectionStart = null;
+    mode = "idle";
+});
