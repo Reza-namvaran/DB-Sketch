@@ -319,8 +319,8 @@ function editText(shape) {
 }
 function editEdge(edge) {
     saveState();
-    let participation = prompt("Participation (partial/total)", edge.participation);
-    if (participation === "total" || participation === "partial") edge.participation = participation;
+    let participation = edge.participation === "total" ? "partial" : "total";
+    edge.participation = participation;
     render();
 }
 
