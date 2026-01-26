@@ -13,6 +13,17 @@ let camera = {
     zoom: 1
 };
 
+let panning = false;
+let panStart = {x: 0, y: 0};
+let spaceDown = false;
+
+document.addEventListener("keydown", key => {
+    if (key.code === "Space") spaceDown = true;
+});
+document.addEventListener("keyup", key => {
+    if (key.code === "Space") spaceDown = false;
+});
+
 let shapes = [];
 let edges = [];
 let dragging = null;
@@ -261,9 +272,17 @@ function startDrag(e) {
         return;
     }
 
-    dragging = shape;
-    offsetX = e.clientX - dragging.x;
-    offsetY = e.clientY - dragging.y;
+    const p = getSVGCoords(e);
+
+    dragging = {
+        shape: selectedShape.length ? selectedShape : [shape],
+        startMouse: p,
+        startPosition: (selectedShape.length ? selectedShape : [shape]).map(s => ({
+            s,
+            x: s.x,
+            y: s.y
+        })) 
+    };
 }
 
 function deleteShape(shapeID) {
@@ -359,7 +378,7 @@ function createCardinalityText(x, y, edge, side) {
         e.stopPropagation();
         if (!editing) inlineEditText(t, edge, side);
     });
-    svg.appendChild(t);
+    viewport.appendChild(t);
 }
 
 function shouldShowCardinality(from, to) {
@@ -551,19 +570,16 @@ function render() {
 }
 
 svg.addEventListener("mousemove", e => {
-    if (selectionStart) {
-        const coords = getSVGCoords(e);
-        const x = Math.min(selectionStart.x, coords.x);
-        const y = Math.min(selectionStart.y, coords.y);
-        const w = Math.abs(selectionStart.x - coords.x);
-        const h = Math.abs(selectionStart.y - coords.y);
-        selectionRect.setAttribute("x", x);
-        selectionRect.setAttribute("y", y);
-        selectionRect.setAttribute("width", w);
-        selectionRect.setAttribute("height", h);
-    } else if (dragging) {
-        dragging.x = snap(e.clientX - offsetX);
-        dragging.y = snap(e.clientY - offsetY);
+    const p = getSVGCoords(e);
+    if (dragging) {
+        const dx = p.x - dragging.startMouse.x;
+        const dy = p.y - dragging.startMouse.y;
+
+        dragging.startPosition.forEach(o => {
+            o.s.x = snap(o.x + dx);
+            o.s.y = snap(o.y + dy);
+        });
+
         render();
     }
 });
@@ -644,3 +660,26 @@ svg.addEventListener("wheel", key => {
 
     updateCamera();
 });
+
+svg.addEventListener("mousedown", key => {
+    if (key.button === 1 || (key.button === 0 && spaceDown)) {
+        panning = true;
+        panStart = {x: key.clientX, y: key.clientY};
+    }
+});
+
+svg.addEventListener("mousemove", e => {
+    if (!panning) return;
+
+    camera.x = (e.clientX - panStart.x);
+    camera.y = (e.clientY - panStart.y);
+
+    panStart = { x: e.clientX, y: e.clientY };
+    
+    updateCamera();
+});
+
+svg.addEventListener("mouseup", () => panning = false);
+svg.addEventListener("mouseup", () => dragging = null);
+svg.addEventListener("mouseleave", () => panning = false);
+
