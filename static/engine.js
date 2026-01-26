@@ -7,6 +7,12 @@ svg.appendChild(viewport);
 
 const GRID_SIZE = 20;
 
+let camera = {
+    x: 0,
+    y: 0,
+    zoom: 1
+};
+
 let shapes = [];
 let edges = [];
 let dragging = null;
@@ -39,6 +45,10 @@ document.addEventListener("keydown", e => {
         }
     }
 });
+
+function updateCamera() {
+    viewport.setAttribute("transform", `translate(${camera.x}, ${camera.y}) scale(${camera.zoom})`);
+}
 
 function snap(val) {
     return Math.round(val / GRID_SIZE) * GRID_SIZE;
@@ -294,6 +304,7 @@ function editEdge(edge) {
     if (participation === "total" || participation === "partial") edge.participation = participation;
     render();
 }
+
 function isNotEntity(shape) { return shape.type !== "rect" && shape.type !== "double-rect"; }
 
 function inlineEditText(svgText, edge, side) {
