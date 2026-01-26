@@ -73,7 +73,7 @@ function getSVGCoords(evt) {
     const pt = svg.createSVGPoint();
     pt.x = evt.clientX;
     pt.y = evt.clientY;
-    return pt.matrixTransform(svg.getScreenCTM().inverse());
+    return pt.matrixTransform(viewport.getScreenCTM().inverse());
 }
 
 function saveDiagram() {
@@ -580,6 +580,7 @@ function render() {
 
 svg.addEventListener("wheel", key => {
     if (!key.ctrlKey) return;
+    key.preventDefault();
 
     key.preventDefault();
 
@@ -587,11 +588,11 @@ svg.addEventListener("wheel", key => {
     const mouse = getSVGCoords(key);
 
     const oldZoom = camera.zoom;
-    camera.zoom *= key.deltaY < 0 ? zoomFactor : 1 / zoomFactor;
-    camera.zoom = Math.min(Math.max(camera.zoom, 0.2), 5);
+    const newZoom = key.deltaY < 0 ? oldZoom * zoomFactor : oldZoom / zoomFactor;
+    camera.zoom = Math.min(Math.max(newZoom, 0.2), 5);
 
-    camera.x = (mouse.x * camera.zoom - mouse.x * oldZoom);
-    camera.y = (mouse.y * camera.zoom - mouse.y * oldZoom);
+    camera.x += mouse.x * (oldZoom - camera.zoom);
+    camera.y += mouse.y * (oldZoom - camera.zoom);
 
     updateCamera();
 });
@@ -624,6 +625,7 @@ svg.addEventListener("mousemove", e => {
         selectionRect.setAttribute("y", y);
         selectionRect.setAttribute("width", w);
         selectionRect.setAttribute("height", h);
+        selectionRect.setAttribute("pointer-events", "none");
         return;
     }
 
@@ -648,7 +650,7 @@ svg.addEventListener("mousedown", e => {
     }
 
     // SELECTION
-    if (e.button === 0 && e.target === svg) {
+    if (e.button === 0 && !e.target.closest(".shape")) {
         if (!e.shiftKey) {
             selectedShapes = [];
             shapes.forEach(s => s._highlight = false);
@@ -674,12 +676,14 @@ svg.addEventListener("mouseup", () => {
         const rw = parseFloat(selectionRect.getAttribute("width"));
         const rh = parseFloat(selectionRect.getAttribute("height"));
 
-        selectedShapes = shapes.filter(s =>
-            s.x + s.w > rx &&
-            s.x < rx + rw &&
-            s.y + s.h > ry &&
-            s.y < ry + rh
-        );
+        selectedShapes = shapes.filter(s => {
+            return (
+                s.x + s.w > rx &&
+                s.x < rx + rw &&
+                s.y + s.h > ry &&
+                s.y < ry + rh
+            );
+        });
 
         shapes.forEach(s => s._highlight = selectedShapes.includes(s));
 
