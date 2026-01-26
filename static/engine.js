@@ -369,6 +369,25 @@ function shouldShowCardinality(from, to) {
            (relTypes.includes(to.type) && entTypes.includes(from.type));
 }
 
+function drawGrid() {
+    const extent = 5000;
+    
+    for (let x = -extent; x <= extent; x += GRID_SIZE) {
+        let v = createSVG("line");
+        v.setAttribute("x1", x); v.setAttribute("y1", -extent);
+        v.setAttribute("x2", x); v.setAttribute("y2", extent);
+        v.setAttribute("stroke", "#eee"); v.setAttribute("pointer-events", "none");
+        viewport.appendChild(v);
+    }
+    for (let y = -extent; y <= extent; y += GRID_SIZE) {
+        let h = createSVG("line");
+        h.setAttribute("x1", -extent); h.setAttribute("y1", y);
+        h.setAttribute("x2", extent); h.setAttribute("y2", y);
+        h.setAttribute("stroke", "#eee"); h.setAttribute("pointer-events", "none");
+        viewport.appendChild(h);
+    }
+}
+
 function render() {
     svg.innerHTML = `<defs>
         <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
@@ -376,21 +395,11 @@ function render() {
         </marker>
     </defs>`;
 
-    // Grid
-    for (let x = 0; x < window.innerWidth; x += GRID_SIZE) {
-        let v = createSVG("line");
-        v.setAttribute("x1", x); v.setAttribute("y1", 0);
-        v.setAttribute("x2", x); v.setAttribute("y2", window.innerHeight);
-        v.setAttribute("stroke", "#eee"); v.setAttribute("pointer-events", "none");
-        svg.appendChild(v);
-    }
-    for (let y = 0; y < window.innerHeight; y += GRID_SIZE) {
-        let h = createSVG("line");
-        h.setAttribute("x1", 0); h.setAttribute("y1", y);
-        h.setAttribute("x2", window.innerWidth); h.setAttribute("y2", y);
-        h.setAttribute("stroke", "#eee"); h.setAttribute("pointer-events", "none");
-        svg.appendChild(h);
-    }
+    viewport = createSVG("g");
+    svg.appendChild(viewport);
+    updateCamera();
+
+    drawGrid();
 
     // Edges
     edges.forEach(edge => {
@@ -419,7 +428,7 @@ function render() {
         line.addEventListener("mouseleave", () => line.setAttribute("stroke", "black"));
         line.addEventListener("dblclick", () => editEdge(edge));
 
-        svg.appendChild(line);
+        viewport.appendChild(line);
 
         // total participation double line
         if (edge.participation === "total") {
@@ -435,7 +444,7 @@ function render() {
             line2.setAttribute("x2", x2 + nx * offset);
             line2.setAttribute("y2", y2 + ny * offset);
             line2.setAttribute("stroke", "black");
-            svg.appendChild(line2);
+            viewport.appendChild(line2);
         }
         
         const angle = Math.atan2(y2 - y1, x2 - x1);
@@ -537,7 +546,7 @@ function render() {
 
 
 
-        svg.appendChild(g);
+        viewport.appendChild(g);
     });
 }
 
@@ -616,4 +625,22 @@ svg.addEventListener("mousedown", e => {
         selectionRect.setAttribute("stroke-dasharray", "4");
         svg.appendChild(selectionRect);
     }
+});
+
+svg.addEventListener("wheel", key => {
+    if (!key.ctrlKey) return;
+
+    key.preventDefault();
+
+    const zoomFactor = 1.1;
+    const mouse = getSVGCoords(key);
+
+    const oldZoom = camera.zoom;
+    camera.zoom *= key.deltaY < 0 ? zoomFactor : 1 / zoomFactor;
+    camera.zoom = Math.min(Math.max(camera.zoom, 0.2), 5);
+
+    camera.x = (mouse.x * camera.zoom - mouse.x * oldZoom);
+    camera.y = (mouse.y * camera.zoom - mouse.y * oldZoom);
+
+    updateCamera();
 });
