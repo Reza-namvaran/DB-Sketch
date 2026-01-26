@@ -1,6 +1,10 @@
 const svg = document.getElementById("canvas");
 svg.style.width = "100vw";
 svg.style.height = "100vh";
+
+let viewport = document.createElementNS("http://www.w3.org/2000/svg", "g");
+svg.appendChild(viewport);
+
 const GRID_SIZE = 20;
 
 let shapes = [];
@@ -286,11 +290,7 @@ function editText(shape) {
 }
 function editEdge(edge) {
     saveState();
-    let fromLabel = prompt("From cardinality (1, N, M):", edge.fromLabel);
-    let toLabel = prompt("To cardinality (1, N, M):", edge.toLabel);
     let participation = prompt("Participation (partial/total)", edge.participation);
-    if (fromLabel != null) edge.fromLabel = fromLabel;
-    if (toLabel != null) edge.toLabel = toLabel;
     if (participation === "total" || participation === "partial") edge.participation = participation;
     render();
 }
