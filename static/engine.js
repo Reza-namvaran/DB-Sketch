@@ -41,6 +41,8 @@ let selectionRect = null;
 let selectedShapes = [];
 let selectedEdges = [];
 
+let resizeContext = null;
+
 let mouseSVG = {x: 0, y: 0};
 
 let editorOpen = false;
@@ -321,6 +323,53 @@ function addDiamond() { addShape("diamond"); }
 function addIndentifyingRelationship() { addShape("idr"); }
 function addCircle() { addShape("Cr"); }
 function addAttribute() { addShape("attribute"); }
+
+function startResize(e, shape, handle) {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const p = getSVGCoords(e);
+
+    resizeContext = {
+        shape,
+        handle,
+        startMouse: p,
+        startBox: {
+            x: shape.x,
+            y: shape.y,
+            w: shape.w,
+            h: shape.h
+        }
+    };
+
+    mode = "resizing";
+}
+
+function drawResizeHandles(shape, group) {
+    const size = 8 / camera.zoom;
+    const handles = {
+        nw: [shape.x, shape.y],
+        ne: [shape.x + shape.w, shape.y],
+        sw: [shape.x, shape.y + shape.h],
+        se: [shape.x + shape.w, shape.y + shape.h],
+    };
+
+    Object.entries(handles).forEach(([pos, [x, y]]) => {
+        const r = createSVG("rect");
+        r.setAttribute("x", x - size / 2);
+        r.setAttribute("y", y - size / 2);
+        r.setAttribute("width", size);
+        r.setAttribute("height", size);
+        r.setAttribute("fill", "white");
+        r.setAttribute("stroke", "black");
+        r.style.cursor = `${pos}-resize`;
+
+        r.addEventListener("mousedown", e => startResize(e, shape, pos));
+
+        group.appendChild(r);
+    });
+}
+
 
 function handleConnection(shape) {
     if (!connectForm) {
@@ -605,6 +654,11 @@ function render() {
             r.setAttribute("fill", "white");
             r.setAttribute("stroke", strokeColor);
             r.setAttribute("stroke-width", strokeWidth);
+
+            if (selectedShapes.length === 1 && selectedShapes[0] === shape) {
+                drawResizeHandles(shape, g);
+            }
+
             g.appendChild(r);
         }
 
@@ -619,8 +673,14 @@ function render() {
                 r.setAttribute("fill","white");
                 r.setAttribute("stroke",strokeColor);
                 r.setAttribute("stroke-width",strokeWidth);
-                g.appendChild(r);
             });
+
+            if (selectedShapes.length === 1 && selectedShapes[0] === shape) {
+                drawResizeHandles(shape, g);
+            }
+
+            g.appendChild(innerRect);
+            g.appendChild(outerRect);
         }
 
         if (shape.type === "diamond" || shape.type === "idr") {
@@ -631,6 +691,11 @@ function render() {
             innerP.setAttribute("fill","white");
             innerP.setAttribute("stroke",strokeColor);
             innerP.setAttribute("stroke-width",strokeWidth);
+
+            if (selectedShapes.length === 1 && selectedShapes[0] === shape && !outerP) {
+                drawResizeHandles(shape, g);
+            }
+
             g.appendChild(innerP);
             if (outerP) {
                 let outerPoints = `${shape.x+5+(shape.w-10)/2},${shape.y+5} ${shape.x+5+(shape.w-10)},${shape.y+5+(shape.h-10)/2} ${shape.x+5+(shape.w-10)/2},${shape.y+5+(shape.h-10)} ${shape.x+5},${shape.y+5+(shape.h-10)/2}`;
@@ -638,6 +703,11 @@ function render() {
                 outerP.setAttribute("fill","white");
                 outerP.setAttribute("stroke",strokeColor);
                 outerP.setAttribute("stroke-width",strokeWidth);
+
+                if (selectedShapes.length === 1 && selectedShapes[0] === shape) {
+                    drawResizeHandles(shape, g);
+                }
+
                 g.appendChild(outerP);
             }
         }
@@ -649,6 +719,11 @@ function render() {
             c.setAttribute("fill","white");
             c.setAttribute("stroke",strokeColor);
             c.setAttribute("stroke-width",strokeWidth);
+
+            if (selectedShapes.length === 1 && selectedShapes[0] === shape) {
+                drawResizeHandles(shape, g);
+            }
+
             g.appendChild(c);
         }
 
@@ -661,6 +736,11 @@ function render() {
             oval.setAttribute("fill", "#fff8dc"); // light color for attribute
             oval.setAttribute("stroke", strokeColor);
             oval.setAttribute("stroke-width", strokeWidth);
+
+            if (selectedShapes.length === 1 && selectedShapes[0] === shape) {
+                drawResizeHandles(shape, g);
+            }
+
             g.appendChild(oval);
         }
 
@@ -749,6 +829,35 @@ svg.addEventListener("mousemove", e => {
         panStart = { x: e.clientX, y: e.clientY };
         updateCamera();
     }
+
+    if (mode === "resizing" && resizeContext) {
+        const p = getSVGCoords(e);
+        const { shape, handle, startMouse, startBox } = resizeContext;
+
+        let dx = snap(p.x - startMouse.x);
+        let dy = snap(p.y - startMouse.y);
+
+        let { x, y, w, h } = startBox;
+
+        if (handle.includes("e")) w = Math.max(40, w + dx);
+        if (handle.includes("s")) h = Math.max(30, h + dy);
+        if (handle.includes("w")) {
+            w = Math.max(40, w - dx);
+            x = snap(x + dx);
+        }
+        if (handle.includes("n")) {
+            h = Math.max(30, h - dy);
+            y = snap(y + dy);
+        }
+
+        shape.x = x;
+        shape.y = y;
+        shape.w = w;
+        shape.h = h;
+
+        render();
+        return;
+    }
 });
 
 svg.addEventListener("mousedown", e => {
@@ -806,6 +915,11 @@ svg.addEventListener("mouseup", () => {
 
         viewport.removeChild(selectionRect);
         selectionRect = null;
+    }
+
+    if (mode === "resizing") {
+        saveState();
+        resizeContext = null;
     }
 
     dragContext = null;
