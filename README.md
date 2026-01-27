@@ -68,21 +68,6 @@ connect Course Enrolls 1 N partial
 
 ---
 
-## 🛠️ Tech Stack
-
-- **HTML**
-- **CSS**
-- **Vanilla JavaScript**
-- **SVG**
-
-No:
-- React
-- Node.js
-- npm packages
-- External libraries
-
----
-
 ## 🚀 Getting Started
 
 1. Clone the repository:
