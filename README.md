@@ -92,7 +92,7 @@ No:
 
 1. Clone the repository:
 ```bash
-   git clone https://github.com/yourusername/er-eer-editor.git
+   git clone https://github.com/Reza-namvaran/DB-Sketch
 ```
 
 2. Open `index.html` in your browser.
@@ -168,6 +168,8 @@ Everything is intentionally kept simple and hackable.
 * Export to DBML / Mermaid
 * Group resize
 * Edge selection improvements
+* Add Edit existing shapes via editor
+* Fix Resizing bugs
 
 ---
 
