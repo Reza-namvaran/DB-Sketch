@@ -16,14 +16,9 @@
     <button onclick="addCircle()">Circle</button>
     <button onclick="saveDiagram()">Save</button>
     <button onclick="loadDiagram()">Load</button>
+
+    <button onclick="openEditor()">Editor (Beta)</button>
 </div>
-
-<textarea id="syntax"
-  placeholder="Write ER/EER syntax here..."
-  style="width:100%; height:120px; margin-top:10px;"></textarea>
-
-<button onclick="parseSyntax()">Generate Diagram</button>
-
 
 <svg id="canvas">
     <defs>
@@ -32,6 +27,23 @@
         </marker>
     </defs>
 </svg>
+
+<div id="syntaxModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>ER / EER Syntax</h3>
+        <button class="close" onclick="closeEditor()">✖</button>
+      </div>
+  
+      <textarea id="syntax"
+        placeholder="Write ER/EER syntax here..."
+      ></textarea>
+  
+      <div class="modal-footer">
+        <button onclick="parseSyntax(); closeEditor()">Generate Diagram</button>
+      </div>
+    </div>
+</div>
 
 <script src="static/engine.js"></script>
 </body>

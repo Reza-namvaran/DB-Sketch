@@ -38,6 +38,8 @@ let selectionRect = null;
 let selectedShapes = [];
 let selectedEdges = [];
 
+let editorOpen = false;
+
 let undoStack = [];
 function saveState() {
     undoStack.push({
@@ -112,6 +114,17 @@ function findShapeByText(text) {
 
 function validCardinality(cardinality) {
     return cardinality === "M" || cardinality === "N" || cardinality === "1";
+}
+
+function openEditor() {
+    editorOpen = true;
+    document.getElementById("syntaxModal").classList.remove("hidden");
+    document.getElementById("syntax").focus();
+}
+
+function closeEditor() {
+    editorOpen = false;
+    document.getElementById("syntaxModal").classList.add("hidden");
 }
 
 function parseSyntax() {
@@ -313,6 +326,10 @@ document.addEventListener("keydown", k => {
         } else if (selectedShape) {
             deleteShape(selectedShape.id);
         }
+    }
+
+    if (k.key === "Escape" && editorOpen) {
+        closeEditor();
     }
 });
 
@@ -580,6 +597,9 @@ function render() {
 
 svg.addEventListener("wheel", key => {
     if (!key.ctrlKey) return;
+
+    if (editorOpen) return;
+
     key.preventDefault();
 
     key.preventDefault();
@@ -598,7 +618,10 @@ svg.addEventListener("wheel", key => {
 });
 
 svg.addEventListener("mousemove", e => {
+    if (editorOpen) return;
+
     const p = getSVGCoords(e);
+
 
     // DRAG
     if (mode === "dragging" && dragContext) {
@@ -642,6 +665,8 @@ svg.addEventListener("mousedown", e => {
     e.preventDefault();
     if (editing) return;
 
+    if (editorOpen) return;
+
     // PAN
     if (e.button === 1 || (e.button === 0 && spaceDown)) {
         mode = "panning";
@@ -670,6 +695,8 @@ svg.addEventListener("mousedown", e => {
 });
 
 svg.addEventListener("mouseup", () => {
+    if (editorOpen) return;
+
     if (mode === "selecting" && selectionRect) {
         const rx = parseFloat(selectionRect.getAttribute("x"));
         const ry = parseFloat(selectionRect.getAttribute("y"));
