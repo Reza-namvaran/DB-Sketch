@@ -33,10 +33,14 @@ let connectForm = null;
 let selectedShape = null;
 let editing = false;
 
+let clipboard = null;
+
 let selectionStart = null;
 let selectionRect = null;
 let selectedShapes = [];
 let selectedEdges = [];
+
+let mouseSVG = {x: 0, y: 0};
 
 let editorOpen = false;
 
@@ -106,6 +110,76 @@ function loadDiagram() {
         reader.readAsText(file);
     };
     input.click();
+}
+
+function copySelection() {
+    if (selectedShapes.length === 0) return;
+
+    const shapeIDs = new Set(selectedShapes.map(s => s.id));
+
+    clipboard = {
+        shapes: selectedShapes.map(s => JSON.parse(JSON.stringify(s))),
+        edges: edges.filter(e => shapeIDs.has(e.from) && shapeIDs.has(e.to)).map(e => JSON.parse(JSON.stringify(e)))
+    };
+}
+
+function pasteSelection() {
+    if (!clipboard || clipboard.shapes.length === 0) return;
+
+    saveState();
+
+    const idMap = new Map();
+    const bounds = getClipboardBounds();
+
+    const dx = mouseSVG.x - bounds.cx;
+    const dy = mouseSVG.y - bounds.cy;
+
+    selectedShapes = [];
+    shapes.forEach(s => s._highlight = false);
+
+    clipboard.shapes.forEach(orig => {
+        const newId = Date.now() + Math.random();
+        idMap.set(orig.id, newId);
+
+        const copy = {
+            ...orig,
+            id: newId,
+            x: orig.x + dx,
+            y: orig.y + dy,
+            _highlight: true
+        };
+
+        shapes.push(copy);
+        selectedShapes.push(copy);
+    });
+
+    clipboard.edges.forEach(e => {
+        edges.push({
+            ...e,
+            from: idMap.get(e.from),
+            to: idMap.get(e.to)
+        });
+    });
+
+    render();
+}
+
+
+function getClipboardBounds() {
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+
+    clipboard.shapes.forEach(s => {
+        minX = Math.min(minX, s.x);
+        minY = Math.min(minY, s.y);
+        maxX = Math.max(maxX, s.x + s.w);
+        maxY = Math.max(maxY, s.y + s.h);
+    });
+
+    return {
+        cx: (minX + maxX) / 2,
+        cy: (minY + maxY) / 2
+    };
 }
 
 function findShapeByText(text) {
@@ -330,6 +404,16 @@ document.addEventListener("keydown", k => {
 
     if (k.key === "Escape" && editorOpen) {
         closeEditor();
+    }
+
+    if ((k.ctrlKey || k.metaKey) && k.key == "c") {
+        k.preventDefault();
+        copySelection();
+    }
+
+    if ((k.ctrlKey || k.metaKey) && k.key == "v") {
+        k.preventDefault();
+        pasteSelection();
     }
 });
 
@@ -622,6 +706,8 @@ svg.addEventListener("mousemove", e => {
 
     const p = getSVGCoords(e);
 
+    mouseSVG.x = p.x;
+    mouseSVG.y = p.y;
 
     // DRAG
     if (mode === "dragging" && dragContext) {
