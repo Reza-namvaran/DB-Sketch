@@ -1,6 +1,7 @@
 const svg = document.getElementById("canvas");
 svg.style.width = "100vw";
 svg.style.height = "100vh";
+svg.style.cursor = "crosshair"
 
 let viewport = document.createElementNS("http://www.w3.org/2000/svg", "g");
 svg.appendChild(viewport);
@@ -678,6 +679,9 @@ function render() {
     });
 }
 
+svg.addEventListener("contextmenu", m => {
+    m.preventDefault();
+});
 
 svg.addEventListener("wheel", key => {
     if (!key.ctrlKey) return;
