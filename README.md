@@ -53,15 +53,11 @@ connect Course Enrolls 1 N partial
 ```
 
 ### Persistence
-- Save diagram as JSON
-- Load diagram from JSON
-- Fully offline (works without internet)
-
+- Save/Load diagram as JSON
 ---
 
 ## 🧠 Why This Exists
 
-- No access to draw.io or similar tools
 - Need **offline ER/EER modeling**
 - Focus on **database semantics**, not generic shapes
 - Hackable, readable codebase (no framework lock-in)
@@ -69,7 +65,6 @@ connect Course Enrolls 1 N partial
   - University projects
   - Teaching ER/EER
   - Database design sessions
-  - Low-bandwidth environments
 
 ---
 
