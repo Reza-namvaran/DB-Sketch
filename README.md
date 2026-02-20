@@ -5,6 +5,28 @@ A lightweight, **offline-first ER / EER diagram editor** built with **plain HTML
 This tool is designed as a database modeling app, with support for **ER and Extended ER (EER)** concepts, syntax-based diagram generation, and precise mouse-based editing.
 
 ---
+## In Memory of Those We Lost
+
+This project was created during the January 2026 internet blackout in Iran — one of the darkest and most uncertain periods in recent years.
+
+During those weeks, amid deep economic hardship and nationwide protests, millions of people experienced a sudden and prolonged disconnection from the world. Beginning on January 8, 2026, internet and mobile networks were shut down across the country for nearly twenty days — and longer in some regions. Families were separated not by distance, but by silence. Messages went undelivered. Voices went unheard. Worry grew heavier with each passing day.
+
+In that silence, in that uncertainty, this project was built.
+
+It stands as a small testament to resilience — created in days when connection was taken away, yet hope endured.
+
+This work is dedicated with humility and love to:
+- Those who are no longer with us
+- The families who carry the enduring weight of loss
+- All who lived through those difficult days and continue to hold onto hope
+
+May their memory remain alive in our hearts and in our work.
+
+**.یادشان همیشه گرامی**
+
+.به امید روز های روشن برای ایران زمین
+
+---
 
 ## ✨ Features
 
